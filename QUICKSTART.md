@@ -2,9 +2,9 @@
 
 ## Current Status
 
-✅ **shell.nix created** - NixOS development environment configured  
-⏳ **Toolchain building** - Nix is compiling RISC-V GCC (this may take 10-20 minutes)  
-✅ **Firmware Makefile updated** - Using `riscv32-none-elf-` prefix  
+- **shell.nix created** - NixOS development environment configured  
+- **Toolchain building** - Nix is compiling RISC-V GCC (this may take 10-20 minutes)  
+- **Firmware Makefile updated** - Using `riscv32-none-elf-` prefix  
 
 ---
 

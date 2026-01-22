@@ -1,10 +1,10 @@
 # RISC-V + GPU Accelerator SoC
 
-**Status:** 🟢 In Development
+**Status:** In Development
 
 A RISC-V soft processor integrated with a custom GPU-style accelerator on FPGA for real-time hardware-based graphics rendering.
 
-## 🎯 Project Goal
+## Project Goal
 
 Demonstrate real-time hardware-based graphics rendering controlled by a soft RISC-V processor on FPGA, featuring:
 - **RISC-V Core**: PicoRV32 soft processor
@@ -12,7 +12,7 @@ Demonstrate real-time hardware-based graphics rendering controlled by a soft RIS
 - **VGA Output**: 640×480 resolution display
 - **AXI-Lite Interface**: Memory-mapped register control for hardware acceleration
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 riscvgpuacc/
@@ -37,7 +37,7 @@ riscvgpuacc/
 └── tools/                # Development tools
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - **FPGA Board**: PYNQ-Z2 (Zynq XC7Z020)
@@ -63,7 +63,7 @@ make all
 ./scripts/build_fpga.sh
 ```
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 The system consists of:
 1. **PicoRV32 Core** - 32-bit RISC-V processor (RV32I)
@@ -72,18 +72,18 @@ The system consists of:
 4. **VGA Controller** - 640×480@60Hz video output
 5. **AXI-Lite Interconnect** - Memory-mapped peripheral access
 
-## 📋 Development Roadmap
+## Development Roadmap
 
 - [x] Project initialization
-- [ ] PicoRV32 core integration
-- [ ] GPU accelerator design
-- [ ] VGA controller implementation
-- [ ] AXI-Lite interconnect
-- [ ] Firmware development
+- [x] PicoRV32 core integration
+- [x] GPU accelerator design
+- [x] VGA controller implementation
+- [x] AXI-Lite interconnect
+- [x] Firmware development
 - [ ] System simulation
 - [ ] FPGA implementation
 
-## 📖 Documentation
+## Documentation
 
 See the `docs/` directory for detailed documentation:
 - Architecture specification
@@ -91,7 +91,7 @@ See the `docs/` directory for detailed documentation:
 - Memory map
 - API reference
 
-## 🔧 Hardware Support
+## Hardware Support
 
 **Target Board**: PYNQ-Z2
 - FPGA: Xilinx Zynq XC7Z020-1CLG400C
@@ -101,6 +101,6 @@ See the `docs/` directory for detailed documentation:
 
 See `docs/pynq_z2_config.md` for detailed board configuration.
 
-## 📝 License
+## License
 
 MIT License - See LICENSE file for details
