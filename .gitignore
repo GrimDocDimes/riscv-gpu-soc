@@ -1,0 +1,51 @@
+# Build outputs
+build/
+*.vvp
+*.vcd
+*.wdb
+
+# Vivado project files
+scripts/vivado_project/
+*.jou
+*.log
+*.str
+*.xpr
+.Xil/
+
+# Firmware build outputs
+firmware/build/
+*.elf
+*.bin
+*.hex
+*.lst
+*.o
+
+# Simulation outputs
+sim/**/*.vcd
+sim/**/*.vvp
+sim/**/*.out
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Nix
+result
+result-*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Temporary files
+*.tmp
+*.bak
