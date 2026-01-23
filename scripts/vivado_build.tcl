@@ -46,10 +46,10 @@ puts "Creating IP cores..."
 create_ip -name clk_wiz -vendor xilinx.com -library ip -version 6.0 -module_name clk_wiz_0
 set_property -dict [list \
     CONFIG.PRIM_IN_FREQ {125.000} \
+    CONFIG.PRIM_SOURCE {Differential_clock_capable_pin} \
     CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {50.000} \
     CONFIG.CLKOUT2_REQUESTED_OUT_FREQ {25.175} \
     CONFIG.CLKOUT2_USED {true} \
-    CONFIG.NUM_OUT_PORTS {2} \
     CONFIG.RESET_TYPE {ACTIVE_LOW} \
     CONFIG.RESET_PORT {resetn} \
 ] [get_ips clk_wiz_0]
@@ -79,6 +79,7 @@ report_power -file $project_dir/power.rpt
 
 # Generate bitstream
 puts "Generating bitstream..."
+set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 launch_runs impl_1 -to_step write_bitstream -jobs 4
 wait_on_run impl_1
 

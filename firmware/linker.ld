@@ -5,11 +5,11 @@ ENTRY(_start)
 
 MEMORY
 {
-    /* Instruction memory: 64KB at 0x00000000 */
-    IMEM (rx)  : ORIGIN = 0x00000000, LENGTH = 64K
+    /* Instruction memory: 32KB at 0x00000000 */
+    IMEM (rx)  : ORIGIN = 0x00000000, LENGTH = 32K
     
-    /* Data memory: 64KB at 0x00010000 */
-    DMEM (rw)  : ORIGIN = 0x00010000, LENGTH = 64K
+    /* Data memory: 32KB at 0x00008000 */
+    DMEM (rw)  : ORIGIN = 0x00008000, LENGTH = 32K
 }
 
 SECTIONS

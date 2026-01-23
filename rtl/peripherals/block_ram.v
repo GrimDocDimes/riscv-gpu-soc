@@ -26,28 +26,36 @@ module block_ram #(
         if (INIT_FILE != "") begin
             $readmemh(INIT_FILE, ram);
         end else begin
+            // For synthesis, BRAMs are initialized to 0 by default
+            // The loop below is only needed for simulation if not using readmemh
+`ifdef SIMULATION
             for (i = 0; i < (1<<ADDR_WIDTH); i = i + 1)
-                ram[i] = 32'h00000013;  // NOP instruction (addi x0, x0, 0)
+                ram[i] = 32'h00000013;  // NOP instruction
+`endif
         end
     end
     
-    // Memory access
+    // Memory array access (No reset for BRAM inference)
+    always @(posedge clk) begin
+        if (valid) begin
+            // Write
+            if (wstrb[0]) ram[addr][7:0]   <= wdata[7:0];
+            if (wstrb[1]) ram[addr][15:8]  <= wdata[15:8];
+            if (wstrb[2]) ram[addr][23:16] <= wdata[23:16];
+            if (wstrb[3]) ram[addr][31:24] <= wdata[31:24];
+            
+            // Read
+            rdata <= ram[addr];
+        end
+    end
+
+    // Control logic (With reset)
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             ready <= 1'b0;
-            rdata <= 32'h0;
         end else begin
             if (valid && !ready) begin
                 ready <= 1'b1;
-                
-                // Write
-                if (wstrb[0]) ram[addr][7:0]   <= wdata[7:0];
-                if (wstrb[1]) ram[addr][15:8]  <= wdata[15:8];
-                if (wstrb[2]) ram[addr][23:16] <= wdata[23:16];
-                if (wstrb[3]) ram[addr][31:24] <= wdata[31:24];
-                
-                // Read
-                rdata <= ram[addr];
             end else begin
                 ready <= 1'b0;
             end

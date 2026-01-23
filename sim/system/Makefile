@@ -6,8 +6,12 @@ VVP = vvp
 GTKWAVE = gtkwave
 
 RTL_DIR = ../../rtl
-SRC_FILES = $(RTL_DIR)/gpu/gpu_accelerator.v \
+SRC_FILES = $(RTL_DIR)/core/picorv32.v \
+            $(RTL_DIR)/gpu/gpu_accelerator.v \
+            $(RTL_DIR)/interconnect/mem_interconnect.v \
             $(RTL_DIR)/peripherals/vga_controller.v \
+            $(RTL_DIR)/peripherals/block_ram.v \
+            $(RTL_DIR)/peripherals/dual_port_ram.v \
             $(RTL_DIR)/top/riscv_gpu_soc.v
 
 TB_TOP = tb_riscv_gpu_soc

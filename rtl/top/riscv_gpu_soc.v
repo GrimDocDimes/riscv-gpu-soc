@@ -7,18 +7,36 @@ module riscv_gpu_soc #(
     parameter COLOR_DEPTH = 8
 )(
     // Clock and reset
-    input wire clk_50mhz,      // System clock
-    input wire clk_25mhz,      // Pixel clock
+    input wire clk_125mhz_p,   // PYNQ-Z2 125MHz differential clock
+    input wire clk_125mhz_n,
     input wire rst_n,
     
-    // VGA output
+    // HDMI output (using VGA signals for now, will be mapped to HDMI pins)
     output wire vga_hsync,
     output wire vga_vsync,
     output wire [7:0] vga_rgb,
     
-    // Debug/GPIO (optional)
-    output wire [3:0] debug_leds
+    // Debug/GPIO
+    output wire [3:0] led
 );
+
+    // Clock signals from Clock Wizard
+    wire clk_50mhz;
+    wire clk_25mhz;
+    wire locked;
+
+    // Clock Wizard instantiation
+    clk_wiz_0 clk_gen (
+        .clk_in1_p(clk_125mhz_p),
+        .clk_in1_n(clk_125mhz_n),
+        .clk_out1(clk_50mhz),
+        .clk_out2(clk_25mhz),
+        .resetn(rst_n),
+        .locked(locked)
+    );
+
+    // Synchronized reset
+    wire sys_rst_n = rst_n & locked;
 
     // PicoRV32 memory interface signals
     wire mem_valid;
@@ -98,10 +116,10 @@ module riscv_gpu_soc #(
         .LATCHED_IRQ(32'h0),
         .PROGADDR_RESET(32'h0000_0000),
         .PROGADDR_IRQ(32'h0000_0010),
-        .STACKADDR(32'h0001_FF00)
+        .STACKADDR(32'h0000_7F00) // Adjusted for 32KB
     ) cpu (
         .clk(clk_50mhz),
-        .resetn(rst_n),
+        .resetn(sys_rst_n),
         .trap(),
         
         .mem_valid(mem_valid),
@@ -142,7 +160,7 @@ module riscv_gpu_soc #(
         .FRAME_HEIGHT(FRAME_HEIGHT)
     ) interconnect (
         .clk(clk_50mhz),
-        .rst_n(rst_n),
+        .rst_n(sys_rst_n),
         
         // PicoRV32 interface
         .mem_valid(mem_valid),
@@ -187,36 +205,36 @@ module riscv_gpu_soc #(
     );
     
     //==========================================================================
-    // Instruction Memory (64KB)
+    // Instruction Memory (32KB)
     //==========================================================================
     block_ram #(
-        .ADDR_WIDTH(14),  // 16K words = 64KB
+        .ADDR_WIDTH(13),  // 8K words = 32KB
         .DATA_WIDTH(32),
         .INIT_FILE("")
     ) imem (
         .clk(clk_50mhz),
-        .rst_n(rst_n),
+        .rst_n(sys_rst_n),
         .valid(imem_valid),
         .ready(imem_ready),
-        .addr(imem_addr[15:2]),  // Word-aligned
+        .addr(imem_addr[14:2]),  // Word-aligned
         .wdata(32'h0),
         .wstrb(4'h0),  // Read-only
         .rdata(imem_rdata)
     );
     
     //==========================================================================
-    // Data Memory (64KB)
+    // Data Memory (32KB)
     //==========================================================================
     block_ram #(
-        .ADDR_WIDTH(14),  // 16K words = 64KB
+        .ADDR_WIDTH(13),  // 8K words = 32KB
         .DATA_WIDTH(32),
         .INIT_FILE("")
     ) dmem (
         .clk(clk_50mhz),
-        .rst_n(rst_n),
+        .rst_n(sys_rst_n),
         .valid(dmem_valid),
         .ready(dmem_ready),
-        .addr(dmem_addr[15:2]),  // Word-aligned
+        .addr(dmem_addr[14:2]),  // Word-aligned
         .wdata(dmem_wdata),
         .wstrb(dmem_wstrb),
         .rdata(dmem_rdata)
@@ -231,7 +249,7 @@ module riscv_gpu_soc #(
         .COLOR_DEPTH(COLOR_DEPTH)
     ) gpu (
         .clk(clk_50mhz),
-        .rst_n(rst_n),
+        .rst_n(sys_rst_n),
         
         // AXI-Lite interface
         .s_axi_awaddr(gpu_awaddr),
@@ -267,7 +285,7 @@ module riscv_gpu_soc #(
         .COLOR_DEPTH(COLOR_DEPTH)
     ) vga (
         .pclk(clk_25mhz),
-        .rst_n(rst_n),
+        .rst_n(sys_rst_n),
         .fb_addr(fb_addr_vga),
         .fb_rdata(fb_rdata_vga),
         .hsync(vga_hsync),
@@ -299,6 +317,6 @@ module riscv_gpu_soc #(
     //==========================================================================
     // Debug
     //==========================================================================
-    assign debug_leds = {mem_valid, mem_ready, fb_we_gpu, vga_hsync};
+    assign led = {mem_valid, mem_ready, fb_we_gpu, vga_hsync};
 
 endmodule

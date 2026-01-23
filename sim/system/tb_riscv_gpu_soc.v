@@ -14,7 +14,7 @@ module tb_riscv_gpu_soc;
     wire vga_hsync;
     wire vga_vsync;
     wire [7:0] vga_rgb;
-    wire [7:0] debug_leds;
+    wire [3:0] debug_leds;
     
     // Instantiate DUT
     riscv_gpu_soc #(
@@ -48,13 +48,17 @@ module tb_riscv_gpu_soc;
         $dumpfile("tb_riscv_gpu_soc.vcd");
         $dumpvars(0, tb_riscv_gpu_soc);
         
+        // Load firmware
+        $readmemh("../../firmware/build/firmware.hex", dut.imem.ram);
+        $display("Firmware loaded into instruction memory");
+        
         // Reset
         rst_n = 0;
         #100;
         rst_n = 1;
         
         // Run simulation
-        #10000;
+        #100000; // Run for longer to see some activity
         
         $display("Simulation completed");
         $finish;

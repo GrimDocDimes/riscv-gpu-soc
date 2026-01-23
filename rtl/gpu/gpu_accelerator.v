@@ -134,6 +134,8 @@ module gpu_accelerator #(
     end
     
     // Register writes
+    reg cmd_valid;
+    reg [3:0] cmd_reg;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             ctrl_reg <= 32'h0;
@@ -144,27 +146,26 @@ module gpu_accelerator #(
             color_reg <= 8'h0;
             width_reg <= 16'h0;
             height_reg <= 16'h0;
-        end else if (s_axi_wready && s_axi_awready) begin
-            case (awaddr_reg[7:0])
-                ADDR_CTRL:   ctrl_reg <= wdata_reg;
-                ADDR_X0:     x0_reg <= wdata_reg[15:0];
-                ADDR_Y0:     y0_reg <= wdata_reg[15:0];
-                ADDR_X1:     x1_reg <= wdata_reg[15:0];
-                ADDR_Y1:     y1_reg <= wdata_reg[15:0];
-                ADDR_COLOR:  color_reg <= wdata_reg[COLOR_DEPTH-1:0];
-                ADDR_WIDTH:  width_reg <= wdata_reg[15:0];
-                ADDR_HEIGHT: height_reg <= wdata_reg[15:0];
-                ADDR_CMD: begin
-                    // Command triggers state machine
-                    case (wdata_reg[3:0])
-                        CMD_PIXEL: next_state <= STATE_PIXEL;
-                        CMD_LINE:  next_state <= STATE_LINE;
-                        CMD_RECT:  next_state <= STATE_RECT;
-                        CMD_CLEAR: next_state <= STATE_CLEAR;
-                        default:   next_state <= STATE_IDLE;
-                    endcase
-                end
-            endcase
+            cmd_valid <= 1'b0;
+            cmd_reg <= 4'h0;
+        end else begin
+            cmd_valid <= 1'b0;
+            if (s_axi_wready && s_axi_awready) begin
+                case (awaddr_reg[7:0])
+                    ADDR_CTRL:   ctrl_reg <= wdata_reg;
+                    ADDR_X0:     x0_reg <= wdata_reg[15:0];
+                    ADDR_Y0:     y0_reg <= wdata_reg[15:0];
+                    ADDR_X1:     x1_reg <= wdata_reg[15:0];
+                    ADDR_Y1:     y1_reg <= wdata_reg[15:0];
+                    ADDR_COLOR:  color_reg <= wdata_reg[COLOR_DEPTH-1:0];
+                    ADDR_WIDTH:  width_reg <= wdata_reg[15:0];
+                    ADDR_HEIGHT: height_reg <= wdata_reg[15:0];
+                    ADDR_CMD: begin
+                        cmd_reg <= wdata_reg[3:0];
+                        cmd_valid <= 1'b1;
+                    end
+                endcase
+            end
         end
     end
     
@@ -222,6 +223,7 @@ module gpu_accelerator #(
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state <= STATE_IDLE;
+            next_state <= STATE_IDLE;
             busy <= 1'b0;
             fb_we <= 1'b0;
             fb_addr <= 0;
@@ -242,6 +244,17 @@ module gpu_accelerator #(
             clear_addr <= 0;
             
         end else begin
+            // Command trigger
+            if (cmd_valid && state == STATE_IDLE) begin
+                case (cmd_reg)
+                    CMD_PIXEL: next_state <= STATE_PIXEL;
+                    CMD_LINE:  next_state <= STATE_LINE;
+                    CMD_RECT:  next_state <= STATE_RECT;
+                    CMD_CLEAR: next_state <= STATE_CLEAR;
+                    default:   next_state <= STATE_IDLE;
+                endcase
+            end
+
             case (state)
                 STATE_IDLE: begin
                     busy <= 1'b0;

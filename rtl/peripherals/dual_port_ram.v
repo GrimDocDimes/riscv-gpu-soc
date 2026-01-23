@@ -25,8 +25,10 @@ module dual_port_ram #(
     // Initialize memory to black
     integer i;
     initial begin
+`ifdef SIMULATION
         for (i = 0; i < (1<<ADDR_WIDTH); i = i + 1)
             ram[i] = 8'h00;
+`endif
     end
     
     // Port A - Write

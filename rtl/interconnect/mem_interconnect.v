@@ -51,10 +51,10 @@ module mem_interconnect #(
 );
 
     // Memory map
-    localparam IMEM_BASE  = 32'h0000_0000;  // 0x00000000 - 0x0000FFFF (64KB)
-    localparam IMEM_SIZE  = 32'h0001_0000;
-    localparam DMEM_BASE  = 32'h0001_0000;  // 0x00010000 - 0x0001FFFF (64KB)
-    localparam DMEM_SIZE  = 32'h0001_0000;
+    localparam IMEM_BASE  = 32'h0000_0000;  // 0x00000000 - 0x00007FFF (32KB)
+    localparam IMEM_SIZE  = 32'h0000_8000;
+    localparam DMEM_BASE  = 32'h0000_8000;  // 0x00008000 - 0x0000FFFF (32KB)
+    localparam DMEM_SIZE  = 32'h0000_8000;
     localparam GPU_BASE   = 32'h1000_0000;  // 0x10000000 - 0x100000FF
     localparam GPU_SIZE   = 32'h0000_0100;
     
@@ -84,9 +84,13 @@ module mem_interconnect #(
             mem_rdata <= 32'h0;
             imem_valid <= 1'b0;
             dmem_valid <= 1'b0;
+            gpu_awaddr <= 32'h0;
             gpu_awvalid <= 1'b0;
+            gpu_wdata <= 32'h0;
+            gpu_wstrb <= 4'h0;
             gpu_wvalid <= 1'b0;
             gpu_bready <= 1'b0;
+            gpu_araddr <= 32'h0;
             gpu_arvalid <= 1'b0;
             gpu_rready <= 1'b0;
             state <= ST_IDLE;
