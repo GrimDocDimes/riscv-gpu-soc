@@ -102,5 +102,4 @@ See the `docs/` directory for detailed documentation:
 See `docs/pynq_z2_config.md` for detailed board configuration.
 
 ## License
-
-MIT License - See LICENSE file for details
+This project is open source and available for educational and research purposes.
