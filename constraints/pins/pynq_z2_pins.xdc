@@ -19,16 +19,17 @@ set_property -dict {PACKAGE_PIN M14 IOSTANDARD LVCMOS33} [get_ports {led[3]}]
 # HDMI output (mapped from VGA signals)
 # Note: This requires a TMDS encoder in RTL for real HDMI, 
 # but we'll map the pins to avoid "no object" errors.
-set_property -dict {PACKAGE_PIN L17 IOSTANDARD TMDS_33} [get_ports vga_hsync]
-set_property -dict {PACKAGE_PIN L16 IOSTANDARD TMDS_33} [get_ports vga_vsync]
-set_property -dict {PACKAGE_PIN K17 IOSTANDARD TMDS_33} [get_ports {vga_rgb[0]}]
-set_property -dict {PACKAGE_PIN K18 IOSTANDARD TMDS_33} [get_ports {vga_rgb[1]}]
-set_property -dict {PACKAGE_PIN J18 IOSTANDARD TMDS_33} [get_ports {vga_rgb[2]}]
-set_property -dict {PACKAGE_PIN H18 IOSTANDARD TMDS_33} [get_ports {vga_rgb[3]}]
-set_property -dict {PACKAGE_PIN G19 IOSTANDARD TMDS_33} [get_ports {vga_rgb[4]}]
-set_property -dict {PACKAGE_PIN G20 IOSTANDARD TMDS_33} [get_ports {vga_rgb[5]}]
-set_property -dict {PACKAGE_PIN F19 IOSTANDARD TMDS_33} [get_ports {vga_rgb[6]}]
-set_property -dict {PACKAGE_PIN F20 IOSTANDARD TMDS_33} [get_ports {vga_rgb[7]}]
+# Using LVCMOS33 because RTL signals are single-ended.
+set_property -dict {PACKAGE_PIN L17 IOSTANDARD LVCMOS33} [get_ports vga_hsync]
+set_property -dict {PACKAGE_PIN L16 IOSTANDARD LVCMOS33} [get_ports vga_vsync]
+set_property -dict {PACKAGE_PIN K17 IOSTANDARD LVCMOS33} [get_ports {vga_rgb[0]}]
+set_property -dict {PACKAGE_PIN K18 IOSTANDARD LVCMOS33} [get_ports {vga_rgb[1]}]
+set_property -dict {PACKAGE_PIN J18 IOSTANDARD LVCMOS33} [get_ports {vga_rgb[2]}]
+set_property -dict {PACKAGE_PIN H18 IOSTANDARD LVCMOS33} [get_ports {vga_rgb[3]}]
+set_property -dict {PACKAGE_PIN G19 IOSTANDARD LVCMOS33} [get_ports {vga_rgb[4]}]
+set_property -dict {PACKAGE_PIN G20 IOSTANDARD LVCMOS33} [get_ports {vga_rgb[5]}]
+set_property -dict {PACKAGE_PIN F19 IOSTANDARD LVCMOS33} [get_ports {vga_rgb[6]}]
+set_property -dict {PACKAGE_PIN F20 IOSTANDARD LVCMOS33} [get_ports {vga_rgb[7]}]
 
 # Configuration
 set_property CFGBVS VCCO [current_design]
