@@ -7,7 +7,7 @@ A 32-bit RISC-V soft processor (PicoRV32) integrated with a custom AXI-Lite 2D G
 
 ---
 
-## 🌟 Architecture & Features
+## Architecture & Features
 
 * **CPU Core**: PicoRV32 (RV32I RISC-V ISA) operating at 50 MHz
 * **GPU Accelerator**: Custom 2D hardware engine supporting:
@@ -21,7 +21,7 @@ A 32-bit RISC-V soft processor (PicoRV32) integrated with a custom AXI-Lite 2D G
 
 ---
 
-## 🗺️ Memory & Register Map
+## Memory & Register Map
 
 ### System Memory Map
 | Address Range | Component | Description |
@@ -43,7 +43,7 @@ A 32-bit RISC-V soft processor (PicoRV32) integrated with a custom AXI-Lite 2D G
 
 ---
 
-## 🚀 Quick Start & Development Environment
+## Quick Start & Development Environment
 
 ### Method 1: Using Nix Shell (Recommended)
 If you have [Nix](https://nixos.org/) installed, enter the reproducible development environment with the pre-configured RISC-V toolchain, GNU Make, and utilities:
@@ -66,7 +66,7 @@ Ensure the following tools are available on your system:
 
 ---
 
-## 🛠️ Build & Verification Instructions
+## Build & Verification Instructions
 
 ### 1. Build Firmware
 Compile the C firmware demo into RISC-V machine hex format:
@@ -97,7 +97,7 @@ cd ../..
 
 ---
 
-## ⚡ FPGA Synthesis & Deployment (PYNQ-Z2)
+## FPGA Synthesis & Deployment (PYNQ-Z2)
 
 ### 1. Synthesize & Generate Bitstream
 Source your Vivado settings and run the build script:
@@ -122,32 +122,6 @@ sudo python3 -c "from pynq import Overlay; Overlay('riscv_gpu_soc.bit')"
 ```
 
 Connect an HDMI monitor to the PYNQ-Z2 **HDMI OUT** port to view the live hardware-accelerated test pattern!
-
----
-
-## 📁 Repository Structure
-
-```
-riscv-gpu-soc/
-├── rtl/                    # Synthesizable Verilog HDL sources
-│   ├── core/              # RISC-V soft core (PicoRV32)
-│   ├── gpu/               # Custom GPU 2D graphics accelerator
-│   ├── interconnect/      # Memory interconnect & AXI-Lite bridge
-│   ├── peripherals/       # Dual-port BRAM & VGA controller
-│   ├── hdmi/              # TMDS 8b/10b encoder & serializer
-│   └── top/               # Top-level SoC wrapper (`riscv_gpu_soc.v`)
-├── firmware/              # RISC-V C software stack & bootloader
-│   ├── drivers/           # GPU hardware driver (`gpu_driver.h`)
-│   └── examples/          # Hardware rendering demo (`test_pattern.c`)
-├── sim/                   # Testbenches & simulation files
-│   ├── unit/              # Self-checking unit tests
-│   └── system/            # Full-system co-simulation
-├── constraints/           # Vivado timing XDC & PYNQ-Z2 pin assignments
-├── scripts/               # Vivado build TCL scripts & quickstart
-└── shell.nix              # Reproducible Nix environment configuration
-```
-
----
 
 ## 📄 License
 
