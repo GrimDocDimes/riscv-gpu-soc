@@ -1,4 +1,4 @@
-# RISC-V + GPU Accelerator System-on-Chip (SoC)
+# RISC-V + GPU Accelerator SoC
 
 [![Status](https://img.shields.io/badge/Status-Fully_Verified_%26_Tested-brightgreen)](#)
 [![Target](https://img.shields.io/badge/Target-PYNQ--Z2_%28XC7Z020%29-blue)](#)
