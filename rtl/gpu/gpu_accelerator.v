@@ -75,11 +75,12 @@ module gpu_accelerator #(
     reg busy;
     
     // Bresenham line drawing registers
-    reg signed [16:0] dx, dy, sx, sy, err, e2;
+    reg signed [17:0] dx, dy, sx, sy, err, e2;
     reg [15:0] x_cur, y_cur;
     
     // Rectangle fill counters
     reg [15:0] rect_x, rect_y;
+    reg        rect_init;  // 1 = first cycle in STATE_RECT, load counters
     reg [31:0] clear_addr;
     
     //==========================================================================
@@ -239,8 +240,9 @@ module gpu_accelerator #(
             y_cur <= 0;
             
             // Rectangle variables
-            rect_x <= 0;
-            rect_y <= 0;
+            rect_x     <= 0;
+            rect_y     <= 0;
+            rect_init  <= 1'b0;
             clear_addr <= 0;
             
         end else begin
@@ -249,7 +251,7 @@ module gpu_accelerator #(
                 case (cmd_reg)
                     CMD_PIXEL: next_state <= STATE_PIXEL;
                     CMD_LINE:  next_state <= STATE_LINE;
-                    CMD_RECT:  next_state <= STATE_RECT;
+                    CMD_RECT:  begin next_state <= STATE_RECT; rect_init <= 1'b1; end
                     CMD_CLEAR: next_state <= STATE_CLEAR;
                     default:   next_state <= STATE_IDLE;
                 endcase
@@ -306,15 +308,15 @@ module gpu_accelerator #(
                                 dx <= 0;
                                 dy <= 0;
                             end else begin
-                                // Bresenham step
+                                // Bresenham step — use full signed register for direction
                                 e2 <= err * 2;
                                 if (e2 >= dy) begin
-                                    err <= err + dy;
-                                    x_cur <= x_cur + sx[0];
+                                    err   <= err + dy;
+                                    x_cur <= $signed({1'b0, x_cur}) + sx;
                                 end
                                 if (e2 <= dx) begin
-                                    err <= err + dx;
-                                    y_cur <= y_cur + sy[0];
+                                    err   <= err + dx;
+                                    y_cur <= $signed({1'b0, y_cur}) + sy;
                                 end
                             end
                         end
@@ -322,33 +324,38 @@ module gpu_accelerator #(
                 end
                 
                 STATE_RECT: begin
-                    // Rectangle fill
-                    if (rect_y == 0 && rect_x == 0) begin
-                        // Initialize
-                        rect_x <= 0;
-                        rect_y <= 0;
-                        fb_we <= 1'b0;
+                    // Rectangle fill — use rect_init flag for first-cycle init
+                    // so we don't deadlock on the (rect_x==0 && rect_y==0) condition
+                    if (rect_init) begin
+                        // First cycle: reset counters and begin
+                        rect_x    <= 0;
+                        rect_y    <= 0;
+                        rect_init <= 1'b0;
+                        fb_we     <= 1'b0;
                     end else if (rect_y < height_reg) begin
-                        // Fill pixels
+                        // Fill pixels row by row
                         if (rect_x < width_reg) begin
-                            if ((x0_reg + rect_x) < FRAME_WIDTH && 
+                            if ((x0_reg + rect_x) < FRAME_WIDTH &&
                                 (y0_reg + rect_y) < FRAME_HEIGHT) begin
-                                fb_addr <= (y0_reg + rect_y) * FRAME_WIDTH + (x0_reg + rect_x);
+                                fb_addr  <= (y0_reg + rect_y) * FRAME_WIDTH + (x0_reg + rect_x);
                                 fb_wdata <= color_reg;
-                                fb_we <= 1'b1;
+                                fb_we    <= 1'b1;
+                            end else begin
+                                fb_we <= 1'b0;
                             end
                             rect_x <= rect_x + 1;
                         end else begin
+                            // End of row — advance to next row
                             rect_x <= 0;
                             rect_y <= rect_y + 1;
-                            fb_we <= 1'b0;
+                            fb_we  <= 1'b0;
                         end
                     end else begin
-                        // Done
-                        state <= STATE_IDLE;
+                        // All rows done
+                        state  <= STATE_IDLE;
                         rect_x <= 0;
                         rect_y <= 0;
-                        fb_we <= 1'b0;
+                        fb_we  <= 1'b0;
                     end
                 end
                 

@@ -1,58 +1,41 @@
-// Top-level SoC Integration
-// Connects PicoRV32, GPU accelerator, VGA controller, and memory
-// HDMI output via TMDS encoder (rgb2tmds) + OSERDESE2 + OBUFDS
+// riscv_gpu_soc_sim.v
+// Simulation-only wrapper for the RISC-V + GPU SoC
+//
+// Purpose: Bypasses Xilinx-specific primitives that cannot be elaborated
+//   without vendor simulation models:
+//     - clk_wiz_0  (MMCM-based clock wizard)
+//     - OSERDESE2  (10:1 serializer)
+//     - OBUFDS     (differential output buffer)
+//
+// Accepts flat clock inputs directly and exposes flat VGA-style outputs
+// for waveform-based simulation and frame-buffer image extraction.
+//
+// This file is EXCLUDED from synthesis (not referenced in vivado_build.tcl).
 
-module riscv_gpu_soc #(
-    parameter FRAME_WIDTH = 640,
+`define SIMULATION
+
+module riscv_gpu_soc_sim #(
+    parameter FRAME_WIDTH  = 640,
     parameter FRAME_HEIGHT = 480,
-    parameter COLOR_DEPTH = 8
+    parameter COLOR_DEPTH  = 8
 )(
-    // Clock and reset
-    input  wire clk_125mhz_p,   // PYNQ-Z2 125 MHz differential clock (positive)
-    input  wire clk_125mhz_n,   // PYNQ-Z2 125 MHz differential clock (negative)
-    input  wire rst_n,           // Active-low reset (BTN0)
+    // Clocks provided directly (no clock wizard in sim)
+    input  wire clk_50mhz,   // System clock  (50 MHz)
+    input  wire clk_25mhz,   // Pixel clock   (25 MHz)
+    input  wire rst_n,
 
-    // HDMI differential output (4 pairs: clk + 3 data channels)
-    output wire hdmi_clk_p,
-    output wire hdmi_clk_n,
-    output wire hdmi_d0_p,      // Blue
-    output wire hdmi_d0_n,
-    output wire hdmi_d1_p,      // Green
-    output wire hdmi_d1_n,
-    output wire hdmi_d2_p,      // Red
-    output wire hdmi_d2_n,
+    // Flat VGA outputs (instead of HDMI differential pairs)
+    output wire vga_hsync,
+    output wire vga_vsync,
+    output wire vga_active,
+    output wire [COLOR_DEPTH-1:0] vga_rgb,
 
-    // Debug/GPIO
+    // Debug LEDs
     output wire [3:0] led
 );
 
     // =====================================================================
-    // Clock Generation (Xilinx Clock Wizard IP: clk_wiz_0)
-    //   In: 125 MHz differential
-    //   Out0: 50 MHz  — system clock (CPU, GPU, memory)
-    //   Out1: 25 MHz  — VGA pixel clock
-    //   Out2: 125 MHz — TMDS serializer clock (5× pixel clock)
-    // =====================================================================
-    wire clk_50mhz;
-    wire clk_25mhz;
-    wire clk_125mhz_ser;  // 5× pixel clock for OSERDESE2
-    wire locked;
-
-    clk_wiz_0 clk_gen (
-        .clk_in1_p  (clk_125mhz_p),
-        .clk_in1_n  (clk_125mhz_n),
-        .clk_out1   (clk_50mhz),
-        .clk_out2   (clk_25mhz),
-        .clk_out3   (clk_125mhz_ser),
-        .resetn     (rst_n),
-        .locked     (locked)
-    );
-
-    // Synchronized reset: only deassert once PLL is locked
-    wire sys_rst_n = rst_n & locked;
-
-    // =====================================================================
-    // PicoRV32 memory interface signals
+    // PicoRV32 memory interface
     // =====================================================================
     wire        mem_valid;
     wire        mem_ready;
@@ -62,13 +45,11 @@ module riscv_gpu_soc #(
     wire [31:0] mem_rdata;
     wire        mem_instr;
 
-    // Instruction memory interface
     wire        imem_valid;
     wire        imem_ready;
     wire [31:0] imem_addr;
     wire [31:0] imem_rdata;
 
-    // Data memory interface
     wire        dmem_valid;
     wire        dmem_ready;
     wire [31:0] dmem_addr;
@@ -95,18 +76,16 @@ module riscv_gpu_soc #(
     wire        gpu_rvalid;
     wire        gpu_rready;
 
-    // Frame buffer signals
-    wire                                      fb_we_gpu;
-    wire [$clog2(FRAME_WIDTH*FRAME_HEIGHT)-1:0] fb_addr_gpu;
-    wire [COLOR_DEPTH-1:0]                    fb_wdata_gpu;
-    wire [$clog2(FRAME_WIDTH*FRAME_HEIGHT)-1:0] fb_addr_vga;
-    wire [COLOR_DEPTH-1:0]                    fb_rdata_vga;
+    // Pre-compute frame buffer address width as a localparam
+    // (avoids $clog2 in wire declarations which some iverilog versions reject)
+    localparam FB_ADDR_W = $clog2(FRAME_WIDTH * FRAME_HEIGHT);
 
-    // VGA timing signals (passed to TMDS encoder)
-    wire        vga_hsync;
-    wire        vga_vsync;
-    wire        vga_active;
-    wire [COLOR_DEPTH-1:0] vga_rgb;
+    // Frame buffer signals
+    wire                    fb_we_gpu;
+    wire [FB_ADDR_W-1:0]    fb_addr_gpu;
+    wire [COLOR_DEPTH-1:0]  fb_wdata_gpu;
+    wire [FB_ADDR_W-1:0]    fb_addr_vga;
+    wire [COLOR_DEPTH-1:0]  fb_rdata_vga;
 
     // =====================================================================
     // PicoRV32 Core
@@ -137,10 +116,10 @@ module riscv_gpu_soc #(
         .LATCHED_IRQ        (32'h0),
         .PROGADDR_RESET     (32'h0000_0000),
         .PROGADDR_IRQ       (32'h0000_0010),
-        .STACKADDR          (32'h0000_7F00)   // Top of 32 KB DMEM
+        .STACKADDR          (32'h0000_7F00)
     ) cpu (
         .clk       (clk_50mhz),
-        .resetn    (sys_rst_n),
+        .resetn    (rst_n),
         .trap      (),
 
         .mem_valid (mem_valid),
@@ -157,10 +136,10 @@ module riscv_gpu_soc #(
         .mem_la_wdata (),
         .mem_la_wstrb (),
 
-        .pcpi_valid (   ),
-        .pcpi_insn  (   ),
-        .pcpi_rs1   (   ),
-        .pcpi_rs2   (   ),
+        .pcpi_valid (),
+        .pcpi_insn  (),
+        .pcpi_rs1   (),
+        .pcpi_rs2   (),
         .pcpi_wr    (1'b0),
         .pcpi_rd    (32'h0),
         .pcpi_wait  (1'b0),
@@ -181,7 +160,7 @@ module riscv_gpu_soc #(
         .FRAME_HEIGHT (FRAME_HEIGHT)
     ) u_mem_interconnect (
         .clk       (clk_50mhz),
-        .rst_n     (sys_rst_n),
+        .rst_n     (rst_n),
 
         .mem_valid (mem_valid),
         .mem_ready (mem_ready),
@@ -222,25 +201,25 @@ module riscv_gpu_soc #(
     );
 
     // =====================================================================
-    // Instruction Memory (32 KB BRAM)
+    // Instruction Memory (32 KB)
     // =====================================================================
     block_ram #(
-        .ADDR_WIDTH (13),             // 8 K words = 32 KB
+        .ADDR_WIDTH (13),
         .DATA_WIDTH (32),
-        .INIT_FILE  ("../../firmware/build/firmware.hex")
+        .INIT_FILE  ("")         // Testbench loads firmware via $readmemh
     ) imem (
         .clk   (clk_50mhz),
-        .rst_n (sys_rst_n),
+        .rst_n (rst_n),
         .valid (imem_valid),
         .ready (imem_ready),
-        .addr  (imem_addr[14:2]),     // Word-aligned
+        .addr  (imem_addr[14:2]),
         .wdata (32'h0),
-        .wstrb (4'h0),                // Read-only
+        .wstrb (4'h0),
         .rdata (imem_rdata)
     );
 
     // =====================================================================
-    // Data Memory (32 KB BRAM)
+    // Data Memory (32 KB)
     // =====================================================================
     block_ram #(
         .ADDR_WIDTH (13),
@@ -248,7 +227,7 @@ module riscv_gpu_soc #(
         .INIT_FILE  ("")
     ) dmem (
         .clk   (clk_50mhz),
-        .rst_n (sys_rst_n),
+        .rst_n (rst_n),
         .valid (dmem_valid),
         .ready (dmem_ready),
         .addr  (dmem_addr[14:2]),
@@ -266,7 +245,7 @@ module riscv_gpu_soc #(
         .COLOR_DEPTH  (COLOR_DEPTH)
     ) gpu (
         .clk   (clk_50mhz),
-        .rst_n (sys_rst_n),
+        .rst_n (rst_n),
 
         .s_axi_awaddr  (gpu_awaddr),
         .s_axi_awvalid (gpu_awvalid),
@@ -292,15 +271,15 @@ module riscv_gpu_soc #(
     );
 
     // =====================================================================
-    // VGA Controller (generates pixel clock timing + frame buffer reads)
+    // VGA Controller
     // =====================================================================
     vga_controller #(
-        .H_VISIBLE  (FRAME_WIDTH),
-        .V_VISIBLE  (FRAME_HEIGHT),
-        .COLOR_DEPTH(COLOR_DEPTH)
+        .H_VISIBLE   (FRAME_WIDTH),
+        .V_VISIBLE   (FRAME_HEIGHT),
+        .COLOR_DEPTH (COLOR_DEPTH)
     ) vga (
         .pclk        (clk_25mhz),
-        .rst_n       (sys_rst_n),
+        .rst_n       (rst_n),
         .fb_addr     (fb_addr_vga),
         .fb_rdata    (fb_rdata_vga),
         .hsync       (vga_hsync),
@@ -310,12 +289,10 @@ module riscv_gpu_soc #(
     );
 
     // =====================================================================
-    // Frame Buffer (Dual-port BRAM: GPU write / VGA read)
-    //   Port A clock: 50 MHz (GPU)
-    //   Port B clock: 25 MHz (VGA) — asynchronous dual-port BRAM
+    // Frame Buffer (Dual-port BRAM)
     // =====================================================================
     dual_port_ram #(
-        .ADDR_WIDTH ($clog2(FRAME_WIDTH*FRAME_HEIGHT)),
+        .ADDR_WIDTH (FB_ADDR_W),
         .DATA_WIDTH (COLOR_DEPTH)
     ) frame_buffer (
         .clk_a  (clk_50mhz),
@@ -327,32 +304,6 @@ module riscv_gpu_soc #(
         .clk_b  (clk_25mhz),
         .addr_b (fb_addr_vga),
         .dout_b (fb_rdata_vga)
-    );
-
-    // =====================================================================
-    // HDMI TMDS Encoder + Serializer
-    // Converts 8-bit RGB332 + VGA sync → 4× TMDS differential pairs
-    // =====================================================================
-    rgb2tmds #(
-        .COLOR_DEPTH (COLOR_DEPTH)
-    ) hdmi_enc (
-        .pclk        (clk_25mhz),
-        .pclk_x5     (clk_125mhz_ser),
-        .rst_n       (sys_rst_n),
-
-        .rgb_in      (vga_rgb),
-        .hsync       (vga_hsync),
-        .vsync       (vga_vsync),
-        .video_active(vga_active),
-
-        .hdmi_clk_p  (hdmi_clk_p),
-        .hdmi_clk_n  (hdmi_clk_n),
-        .hdmi_d0_p   (hdmi_d0_p),
-        .hdmi_d0_n   (hdmi_d0_n),
-        .hdmi_d1_p   (hdmi_d1_p),
-        .hdmi_d1_n   (hdmi_d1_n),
-        .hdmi_d2_p   (hdmi_d2_p),
-        .hdmi_d2_n   (hdmi_d2_n)
     );
 
     // =====================================================================
